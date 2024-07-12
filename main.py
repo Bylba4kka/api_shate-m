@@ -27,15 +27,32 @@ def upload_via_ssh(local_path, remote_path, hostname, username, password):
         # Создаем SFTP-соединение
         sftp_client = ssh_client.open_sftp()
 
-        # Загружаем файл
-        sftp_client.put(local_path, remote_path)
+        # Проверка, существует ли файл на сервере
+        try:
+            sftp_client.stat(remote_path)
+            print(f"File {remote_path} already exists on the server. Skipping upload.")
+        except FileNotFoundError:
+            # Если файл не найден, загружаем его
+            sftp_client.put(local_path, remote_path)
+            print(f"File {local_path} uploaded to {remote_path}.")
 
         # Закрываем соединение
-        sftp_client.close()
-        ssh_client.close()
-        print(f"Файл {local_path} успешно загружен на {hostname} по пути {remote_path}")
+        if sftp_client:
+            sftp_client.close()
+        if ssh_client:
+            ssh_client.close()
     except Exception as e:
-        print(f"Ошибка при загрузке файла: {str(e)}")
+        print(f"An error occurred: {e}")
+        if sftp_client:
+            sftp_client.close()
+        if ssh_client:
+            ssh_client.close()
+    finally:
+        # Гарантируем закрытие соединений в блоке finally
+        if sftp_client:
+            sftp_client.close()
+        if ssh_client:
+            ssh_client.close()
 
 
 def get_access_token_by_apikey():
